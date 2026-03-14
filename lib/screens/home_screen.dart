@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:csv/csv.dart';
-import 'package:share_plus/share_plus.dart';
 import '../models/task_cell.dart';
 import '../database/database_helper.dart';
 import '../widgets/color_picker.dart';
@@ -103,10 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (currentColor.isEmpty) {
         newColor = _selectedColor;
       } else if (currentColor == _selectedColor) {
-        // 再次点击相同颜色则清除
         newColor = '';
       } else {
-        // 切换到新选择的颜色
         newColor = _selectedColor;
       }
       
@@ -116,60 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
     await _saveCell(row, col);
-  }
-
-  // 导出CSV
-  Future<void> _exportToCSV() async {
-    try {
-      final workDays = _getWorkDays();
-      final dateFormat = DateFormat('M/d');
-      
-      // 构建CSV数据
-      final List<List<dynamic>> csvData = [];
-      
-      // 标题行
-      final header = ['任务名称'];
-      for (var day in workDays) {
-        final weekday = _getWeekdayName(day.weekday);
-        header.add('$weekday ${dateFormat.format(day)}');
-      }
-      csvData.add(header);
-      
-      // 数据行
-      for (int row = 0; row < _rowCount; row++) {
-        final rowData = <dynamic>[];
-        rowData.add(_cells[row][0].content);
-        for (int col = 1; col < _colCount; col++) {
-          final cell = _cells[row][col];
-          if (cell.color.isNotEmpty) {
-            rowData.add('[${cell.color}] ${cell.content}');
-          } else {
-            rowData.add(cell.content);
-          }
-        }
-        csvData.add(rowData);
-      }
-      
-      final csv = const ListToCsvConverter().convert(csvData);
-      
-      // 分享文件
-      await Share.share(
-        csv!,
-        subject: '任务规划表_${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('导出成功！')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导出失败: $e')),
-        );
-      }
-    }
   }
 
   // 清空所有数据
@@ -233,23 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'export') {
-                _exportToCSV();
-              } else if (value == 'clear') {
+              if (value == 'clear') {
                 _clearAllData();
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_download),
-                    SizedBox(width: 8),
-                    Text('导出CSV'),
-                  ],
-                ),
-              ),
               const PopupMenuItem(
                 value: 'clear',
                 child: Row(
@@ -315,10 +244,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 80 + 70.0 * (_colCount - 1),
                         child: ListView.builder(
                           controller: _verticalScrollController,
-                          itemCount: _rowCount + 1, // +1 for header
+                          itemCount: _rowCount + 1,
                           itemBuilder: (context, index) {
                             if (index == 0) {
-                              // 标题行
                               return _buildHeaderRow(workDays, dateFormat);
                             }
                             return _buildDataRow(index - 1, workDays);
@@ -344,9 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // 任务名称列标题
           _buildHeaderCell('任务名称', width: 80),
-          // 日期列标题
           ...workDays.map((day) {
             final weekday = _getWeekdayName(day.weekday);
             return _buildHeaderCell(
@@ -392,9 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // 任务名称输入框
           _buildTaskNameCell(row),
-          // 日期单元格
           ...List.generate(workDays.length, (col) {
             return _buildDateCell(row, col + 1);
           }),
